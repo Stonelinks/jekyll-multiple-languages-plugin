@@ -100,7 +100,7 @@ module Jekyll
       end
       if candidate == ""
         puts "Missing i18n key: " + lang + ":" + key
-        "*" + lang + ":" + key + "*"
+        key
       else
         candidate
       end
