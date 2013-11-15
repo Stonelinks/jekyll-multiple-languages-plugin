@@ -90,6 +90,7 @@ module Jekyll
       lang = context.registers[:site].config['lang']
       candidate = YAML.load_file(context.registers[:site].source + "/_i18n/#{lang}.yml")
       path = key.split(/\./) if key.is_a?(String)
+      path[0] += '.' if key[-1] == '.'
       while !path.empty?
         key = path.shift
         if candidate[key]
