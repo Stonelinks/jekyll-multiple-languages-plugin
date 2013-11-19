@@ -1,22 +1,28 @@
+require 'yaml'
+$translations = {}
+$output_missing_keys = true
+
 module Jekyll
   class Site
     alias :process_org :process
 
     def process
-      #Variables
+      # variables
       self.config['baseurl_root'] = self.config['baseurl']
       dest_org = self.dest
       baseurl_org = self.baseurl
       languages = self.config['languages']
 
-      #Loop
+      # loop
       self.config['lang'] = languages.first
       puts
       puts "Building site for default language: \"#{self.config['lang']}\" to: " + self.dest
       process_org
       languages.drop(1).each do |lang|
-
-        # Build site for language lang
+        
+        $translations = {} if lang != "en" and $output_missing_keys
+      
+        # build site for language lang
         self.dest = self.dest + "/" + lang
         self.baseurl = self.baseurl + "/" + lang
         self.config['baseurl'] = self.baseurl
@@ -24,10 +30,15 @@ module Jekyll
         puts "Building site for language: \"#{self.config['lang']}\" to: " + self.dest
         process_org
 
-        #Reset variables for next language
+        # reset variables for next language
         self.dest = dest_org
         self.baseurl = baseurl_org
         self.config['baseurl'] = baseurl_org
+        
+        if lang != "en" and $output_missing_keys
+          $output_missing_keys = false
+          puts $translations.to_yaml
+        end
       end
       puts 'Build complete'
     end
@@ -35,7 +46,7 @@ module Jekyll
 
   class LocalizeInclude < Jekyll::Tags::IncludeTag
     def render(context)
-      if "#{context[@file]}" != "" #Check for page variable
+      if "#{context[@file]}" != "" # check for page variable
         file = "#{context[@file]}"
       else
         file = @file
@@ -82,29 +93,47 @@ module Jekyll
     end
 
     def render(context)
-      if "#{context[@key]}" != "" #Check for page variable
+      if "#{context[@key]}" != "" # check for page variable
         key = "#{context[@key]}"
       else
         key = @key
       end
       lang = context.registers[:site].config['lang']
       candidate = YAML.load_file(context.registers[:site].source + "/_i18n/#{lang}.yml")
-      path = key.split(/\./) if key.is_a?(String)
-      path[0] += '.' if key[-1] == '.'
-      while !path.empty?
-        key = path.shift
-        if candidate[key]
-          candidate = candidate[key]
-        else
-          candidate = ""
-        end
-      end
-      if candidate == ""
-        puts "Missing i18n key: " + lang + ":" + key
-        key
+
+      if candidate[key]
+        candidate = candidate[key]
       else
-        candidate
+        candidate = ""
       end
+
+      # path = key.split(/\./) if key.is_a?(String)
+      # path[0] += '.' if key[-1] == '.'
+      # while !path.empty?
+        # key = path.shift
+        # if candidate[key]
+          # candidate = candidate[key]
+        # else
+          # candidate = ""
+        # end
+      # end
+      
+      ret = ''
+      
+      if candidate == ""
+        # puts "Missing i18n key: " + lang + ":" + key
+        # puts "'" + key + "': ''"
+        $translations[key] = ''
+        ret = key
+      else
+        
+        # {{ site.baseurl_root }}
+        # {{ site.lang }}
+        # $translations[key] = candidate
+        ret = candidate
+      end
+      
+      return ret.gsub(/{{ site.lang }}/, lang).gsub(/{{ site.baseurl_root }}/, context.registers[:site].config['baseurl_root'])
     end
   end
 end
