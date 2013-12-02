@@ -17,7 +17,7 @@ module Jekyll
       self.config['lang'] = languages.first
       puts
       puts "Building site for default language: \"#{self.config['lang']}\" to: " + self.dest
-      # process_org
+      process_org
       languages.drop(1).each do |lang|
         
         $translations = {} if lang != "en" and $output_missing_keys
